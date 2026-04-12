@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=800"/>
+<title>CC Daily</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 800px;
+    height: 480px;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+  }
+
+  .scene {
+    position: relative;
+    width: 800px;
+    height: 480px;
+    overflow: hidden;
+  }
+
+  /* Background fills full canvas */
+  .bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  /* Side panels - left and right */
+  .cc-side {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 22%;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 8px 6px;
+  }
+
+  .cc-side--left  { left: 0; }
+  .cc-side--right { right: 0; }
+  .cc-side--bottom { justify-content: flex-end; }
+
+  /* Frame + sprite wrapper */
+  .cc-frame-wrap {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .cc-frame {
+    position: absolute;
+    display: block;
+  }
+
+  .cc-sprite {
+    position: relative;
+    display: block;
+    z-index: 2;
+  }
+
+  /* Speech bubbles */
+  .cc-bubble {
+    border: 2.5px solid #000;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.3;
+    width: 100%;
+    word-break: break-word;
+    padding: 4px 6px;
+    border-radius: 6px;
+    z-index: 50;
+    position: relative;
+  }
+
+  .cc-bubble--dark  { background: #000; color: #fff; }
+  .cc-bubble--light { background: #fff; color: #000; }
+
+  /* Center escalation bubble */
+  .cc-center-bubble {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 44%;
+    z-index: 50;
+    border: 2.5px solid #000;
+    border-radius: 6px;
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1.3;
+    padding: 4px 8px;
+    text-align: center;
+  }
+
+  .cc-center-bubble--top    { top: 10px; }
+  .cc-center-bubble--bottom { bottom: 18px; }
+  .cc-center-bubble--dark   { background: #000; color: #fff; }
+  .cc-center-bubble--light  { background: #fff; color: #000; }
+</style>
+</head>
+<body>
+<div class="scene" id="scene">
+  <img class="bg" id="bg" src="" alt=""/>
+
+  <div class="cc-side cc-side--left" id="left-panel">
+    <div class="cc-frame-wrap" id="left-frame-wrap">
+      <img class="cc-frame" id="left-frame" src="" alt="" style="display:none"/>
+      <img class="cc-sprite" id="left-sprite" src="" alt=""/>
+    </div>
+    <div class="cc-bubble" id="left-bubble"></div>
+  </div>
+
+  <div class="cc-side cc-side--right" id="right-panel">
+    <div class="cc-frame-wrap" id="right-frame-wrap">
+      <img class="cc-frame" id="right-frame" src="" alt="" style="display:none"/>
+      <img class="cc-sprite" id="right-sprite" src="" alt=""/>
+    </div>
+    <div class="cc-bubble" id="right-bubble"></div>
+  </div>
+
+  <div class="cc-center-bubble" id="center-bubble"></div>
+</div>
+
+<script>
+const BACKGROUNDS = [
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/1qvms3.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/267upo.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/2essk1.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/3f6o5f.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/4yvyil.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/76gav3.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/7vkd2x.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/86gv4h.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/ab0ffh.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/al3jar.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/au6908.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/bkm783.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/h4e3dd.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/hysrss.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/iieief.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/kaf40m.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/nisa1k.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/ovs1kj.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/pjddph.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/qkhky2.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/sp3h2l.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/t13ith.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/tmzxpv.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/v5qykg.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/w55y6h.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/ybn74m.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/ygqhae.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/yuyavu.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/backgrounds/zayiy9.png"
+];
+
+const FRAMES = [
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/frames/0ra43m.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/frames/h618s9.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/frames/r6rz8x.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/frames/t08n7r.png"
+];
+
+const SPRITES = [
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/06proo.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/43bzzc.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/dwbq9g.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/epoqsg.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/fjop70.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/fkjomd.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/gnc2rl.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/hdakp2.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/hf6gcx.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/hu91pb.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/j11q2z.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/j489t9.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/jl9bhz.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/m52276.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/nzy07p.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/pjgel3.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/s6emxa.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/s77y0u.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/s7ngh4.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/syxje1.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/uw3by5.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/v4dbue.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/vgqaqi.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/wtwwov.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/yyt9fh.png",
+  "https://raw.githubusercontent.com/CozyScenes/cozy-scenes-assets/main/dcm/sprites/zgzigi.png"
+];
+
+const TEXT = {
+  setup: [
+    ["I made myself a warm drink and decided today would be gentle","I wrapped myself in a blanket and called it a plan","I told myself today was for resting and meant it","I lit a candle and decided that counted as self care"],
+    ["Today I will do the thing. The thing will be done.","I woke up and chose productivity","I made a list. a very good list. very official.","I set three alarms and felt extremely prepared"],
+    ["I wondered what clouds think about at night","I started imagining a better version of Tuesday","I spent the morning thinking about thinking","I had a thought so interesting I forgot what it was"],
+    ["I had a feeling today would be different","I wrote a list of everything I wanted to feel","I woke up and the light looked different today","Something felt possible before I checked my phone"],
+    ["I had one job today","I decided to fix everything at once","I opened my laptop with real intentions","I made a plan and immediately diverged from it"]
+  ],
+  escalation: [
+    ["but the blanket was too comfortable to leave","but the tea needed a biscuit. then another biscuit.","but the couch had other plans and they were good plans","but it started raining and that settled it"],
+    ["but I opened one tab. then seventeen more.","but the bed had other plans","but I googled one thing and it took three hours","but someone sent a meme and I lost the thread"],
+    ["but I got lost thinking about it for two hours","but the clouds outside were very distracting","but I ended up staring at the ceiling productively","but the window was doing something interesting"],
+    ["but the day had its own agenda","but something small went sideways","but the day had already made other arrangements","but things got a little sideways in a gentle way"],
+    ["but then everything happened at once","but I found a snack and lost the plot","but my snack situation required immediate attention","but I found an old playlist and time stopped working"]
+  ],
+  punchline: [
+    ["so now I am horizontal and at peace with this","so the blanket won. fair enough.","so I made peace with the horizontal lifestyle","so the afternoon became a soft place to land"],
+    ["productivity is scheduled for tomorrow","I did one thing. I'm counting it.","tomorrow is basically today but better prepared","I wrote it down so future me can deal with it"],
+    ["so I am still here, thinking, which is also something","the clouds didn't answer but it was nice to ask","it was nice to be somewhere else for a while","the thinking was good even if nothing got done"],
+    ["tomorrow the feeling will come back. it always does.","it was enough to have tried","the feeling will come back. it knows where I live.","some days just need to be witnessed not conquered"],
+    ["so now I'm just here. the snack was good though.","I'll fix everything tomorrow. or the day after.","everything is fine the snack was excellent","I regret nothing and plan to do it again tomorrow"]
+  ]
+};
+
+function getDeviceSalt() {
+  let s = localStorage.getItem('cc_salt');
+  if (!s) {
+    s = Math.floor(Math.random() * 99991).toString();
+    localStorage.setItem('cc_salt', s);
+  }
+  return parseInt(s, 10);
+}
+
+function makeSeed() {
+  const salt = getDeviceSalt();
+  return Math.floor(Date.now() / 1000) * 7 + salt;
+}
+
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return {
+    next() {
+      s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+      return s;
+    },
+    pick(arr) { return arr[this.next() % arr.length]; },
+    bool() { return (this.next() % 2) === 0; },
+    range(lo, hi) { return lo + (this.next() % (hi - lo + 1)); }
+  };
+}
+
+function build() {
+  const rng = makeRng(makeSeed());
+
+  const bg = rng.pick(BACKGROUNDS);
+  const frameLeft = rng.pick(FRAMES);
+  const frameRight = rng.pick(FRAMES);
+  const spriteLeft = rng.pick(SPRITES);
+  const spriteRight = rng.pick(SPRITES);
+
+  const mood = rng.next() % 5;
+  const setup = rng.pick(TEXT.setup[mood]);
+  const escalation = rng.pick(TEXT.escalation[mood]);
+  const punchline = rng.pick(TEXT.punchline[mood]);
+
+  const leftDark = rng.bool();
+  const rightDark = rng.bool();
+  const centerDark = rng.bool();
+  const leftBottom = rng.bool();
+  const rightBottom = rng.bool();
+  const centerBottom = rng.bool();
+  const flipLeft = rng.bool();
+  const flipRight = rng.bool();
+  const flipFrameLeft = rng.bool();
+  const flipFrameRight = rng.bool();
+
+  const rots = ["0deg", "90deg", "180deg", "270deg"];
+  const rotFL = rng.pick(rots);
+  const rotFR = rng.pick(rots);
+
+  const frameSizeL = rng.range(75, 105);
+  const frameSizeR = rng.range(75, 105);
+  const spriteSizeL = rng.range(60, 90);
+  const spriteSizeR = rng.range(60, 90);
+
+  document.getElementById('bg').src = bg;
+
+  const leftPanel = document.getElementById('left-panel');
+  leftPanel.className = 'cc-side cc-side--left' + (leftBottom ? ' cc-side--bottom' : '');
+
+  const lf = document.getElementById('left-frame');
+  lf.src = frameLeft;
+  lf.style.cssText = `width:${frameSizeL}%; transform:rotate(${rotFL}) scaleX(${flipFrameLeft ? -1 : 1}); display:block;`;
+
+  const ls = document.getElementById('left-sprite');
+  ls.src = spriteLeft;
+  ls.style.cssText = `width:${spriteSizeL}%; transform:scaleX(${flipLeft ? -1 : 1});`;
+
+  const lb = document.getElementById('left-bubble');
+  lb.textContent = setup;
+  lb.className = 'cc-bubble ' + (leftDark ? 'cc-bubble--dark' : 'cc-bubble--light');
+
+  const rightPanel = document.getElementById('right-panel');
+  rightPanel.className = 'cc-side cc-side--right' + (rightBottom ? ' cc-side--bottom' : '');
+
+  const rf = document.getElementById('right-frame');
+  rf.src = frameRight;
+  rf.style.cssText = `width:${frameSizeR}%; transform:rotate(${rotFR}) scaleX(${flipFrameRight ? -1 : 1}); display:block;`;
+
+  const rs = document.getElementById('right-sprite');
+  rs.src = spriteRight;
+  rs.style.cssText = `width:${spriteSizeR}%; transform:scaleX(${flipRight ? -1 : 1});`;
+
+  const rb = document.getElementById('right-bubble');
+  rb.textContent = punchline;
+  rb.className = 'cc-bubble ' + (rightDark ? 'cc-bubble--dark' : 'cc-bubble--light');
+
+  const cb = document.getElementById('center-bubble');
+  cb.textContent = escalation;
+  cb.className = 'cc-center-bubble '
+    + (centerBottom ? 'cc-center-bubble--bottom' : 'cc-center-bubble--top') + ' '
+    + (centerDark ? 'cc-center-bubble--dark' : 'cc-center-bubble--light');
+}
+
+build();
+</script>
+</body>
+</html>
